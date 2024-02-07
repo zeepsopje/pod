@@ -32,12 +32,12 @@ pub struct SearchQueryParams {
     per_page: Option<u64>,
 }
 
-pub struct Crawl {
+pub struct Pod {
     crates_client: reqwest::Client,
     docs_client: reqwest::Client,
 }
 
-impl Crawl {
+impl Pod {
     pub fn new() -> Self {
         let crates_client = Client::builder()
             .user_agent(APP_USER_AGENT)

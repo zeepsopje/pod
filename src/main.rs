@@ -1,13 +1,17 @@
-use crawl::Crawl;
+use pod::Pod;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let crawl = Crawl::new();
-    let result = crawl.search("hello").await?;
+    let pod = Pod::new();
+    let docs = pod.get_crate_docs("chrono").await?;
 
-    let docs = crawl.get_crate_docs("chrono").await?;
-
-    // dbg!(&docs);
+    for _struct in docs.structs {
+        print!("{}", _struct.name);
+        if _struct.is_deprecated {
+            print!(" (deprecated)");
+        }
+        print!("\n");
+    }
 
     Ok(())
 }

@@ -1,6 +1,9 @@
 use crate::error::Error;
 
-use scraper::{html::Html, Selector};
+use scraper::{
+    html::Html,
+    Selector,
+};
 
 #[derive(Debug)]
 pub struct MetaData {
@@ -39,7 +42,7 @@ pub struct Function {}
 
 #[derive(Debug)]
 pub struct Documentation {
-    pub meta_data: MetaData,
+    document: Html,
     pub modules: Vec<Module>,
     pub structs: Vec<_Struct>,
     pub enums: Vec<_Enum>,
@@ -47,64 +50,69 @@ pub struct Documentation {
 }
 
 impl Documentation {
-    pub fn new(meta_data: MetaData) -> Self {
+    pub fn new(document: Html) -> Self {
         Self {
-            meta_data,
-            modules: Vec::new(),
-            structs: Vec::new(),
-            enums: Vec::new(),
-            functions: Vec::new(),
+            document,
+            modules: vec![],
+            structs: vec![],
+            enums: vec![],
+            functions: vec![],
         }
+    }
+
+    pub fn parse_functions(&self)  -> Result<Vec<Function>, Error> {
+        Ok(Vec::new())
+    }
+
+    pub fn parse_enums(&self)  -> Result<Vec<_Enum>, Error> {
+        Ok(Vec::new())
+    }
+
+    pub fn parse_modules(&self)  -> Result<Vec<Module>, Error> {
+        Ok(Vec::new())
+    }
+
+    pub fn parse_structs(&self)  -> Result<Vec<_Struct>, Error> {
+        let mut structs = Vec::new();
+
+        let select_structs = Selector::parse(r#"#structs + .item-table .item-name"#)?;
+
+        for _struct in self.document.select(&select_structs) {
+            let select_name = Selector::parse(r#"a.struct"#)?;
+            let select_deprecated = Selector::parse(r#"span.stab.deprecated"#)?;
+
+            let name = _struct
+                .select(&select_name)
+                .next()
+                .unwrap()
+                .inner_html();
+
+            let is_deprecated = _struct
+                .select(&select_deprecated)
+                .next()
+                .is_some();
+
+            let _struct = _Struct {
+                name,
+                fields: vec![],
+                methods: vec![],
+                is_deprecated,
+            };
+
+            structs.push(_struct);
+        }
+
+        Ok(structs)
     }
 
     pub fn from_raw_html(html: &str) -> Result<Documentation, Error> {
         let document = Html::parse_document(html);
+        let mut docs = Documentation::new(document);
 
-        // Metadata
-        let select_meta_data = Selector::parse(r#".package-details-menu"#)?;
-        let select_crate_name = Selector::parse(r#"#crate-title"#)?;
-        let select_dependencies = Selector::parse(r#".pure-g.menu-item-divided > :first-child .pure-menu-list .pure-menu-list li a"#)?;
-        let select_versions = Selector::parse(r#".pure-g.menu-item-divided > :last-child .pure-menu-list .pure-menu-list li a"#)?;
-
-        let mut crate_name = String::new();
-        let mut versions = Vec::new();
-        let mut dependencies = Vec::new();
-
-        for node in document.select(&select_versions) {
-            println!("hello there");
-            versions.push(node.inner_html());
-        }
-
-        for dependency in document.select(&select_dependencies) {
-            let dependency = dependency
-                .attr("href")
-                .unwrap()
-                .replace("/", "")
-                .trim()
-                .to_owned();
-            dependencies.push(dependency);
-        }
-
-        let meta_data = MetaData {
-            crate_name,
-            versions,
-            dependencies,
-        };
-
-        let mut docs = Documentation::new(meta_data);
-
-        // Structs
-        let select_structs = Selector::parse(r#"#structs + .item-table .item-name > a.struct"#)?;
-        for _struct in document.select(&select_structs) {
-            let _struct = _Struct {
-                name: _struct.inner_html(),
-                fields: vec![],
-                methods: vec![],
-                is_deprecated: false,
-            };
-
-            docs.structs.push(_struct);
-        }
+        docs.structs    = docs.parse_structs()?;
+        docs.modules    = docs.parse_modules()?;
+        docs.enums      = docs.parse_enums()?;
+        docs.functions  = docs.parse_functions()?;
 
         Ok(docs)
     }

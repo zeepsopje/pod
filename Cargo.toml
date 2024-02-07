@@ -1,5 +1,5 @@
 [package]
-name = "crawl"
+name = "pod"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.79"
+axum = "0.7.4"
 reqwest = { version = "0.11.24", features = ["json"] }
 scraper = "0.18.1"
 serde = { version = "1.0.196", features = ["derive"] }
